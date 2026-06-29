@@ -1,0 +1,62 @@
+name: Playwright Security Regression
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  playwright-security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Start crAPI
+        run: docker compose -f deploy/docker/docker-compose.yml up -d
+
+      - name: Wait for crAPI
+        run: |
+          for i in {1..40}; do
+            if curl -s http://127.0.0.1:8888 > /dev/null; then
+              echo "crAPI is up"
+              exit 0
+            fi
+            echo "Waiting for crAPI..."
+            sleep 10
+          done
+
+          echo "crAPI did not start in time"
+          docker ps
+          docker compose -f deploy/docker/docker-compose.yml logs --tail=100
+          exit 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright test dependencies
+        working-directory: playwright-security
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: playwright-security
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: playwright-security
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-security/playwright-report/
+
+      - name: Shut down crAPI
+        if: always()
+        run: docker compose -f deploy/docker/docker-compose.yml down
