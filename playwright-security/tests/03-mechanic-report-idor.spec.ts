@@ -1,16 +1,30 @@
 import { test, expect } from '@playwright/test';
 
-const testUser = {
-  name: 'Playwright IDOR User',
-  email: 'playwright-idor-user@test.com',
-  number: '2238887879',
-  password: 'Test123!',
-};
-
 test('blocks access to another user mechanic report', async ({ request }) => {
-  await request.post('http://127.0.0.1:8888/identity/api/auth/signup', {
+  const uniqueId = Date.now();
+
+  const testUser = {
+    name: 'Playwright IDOR User',
+    email: `playwright-idor-${uniqueId}@test.com`,
+    number: `223${String(uniqueId).slice(-7)}`,
+    password: 'Test123!',
+  };
+
+  const signupResponse = await request.post('http://127.0.0.1:8888/identity/api/auth/signup', {
     data: testUser,
   });
+
+  const signupBody = await signupResponse.text();
+
+  console.log('Signup status:', signupResponse.status());
+  console.log('Signup body:', signupBody);
+  console.log('Test user email:', testUser.email);
+  console.log('Test user number:', testUser.number);
+
+  expect(
+    [200, 201],
+    `Expected signup to succeed, but got ${signupResponse.status()}`
+  ).toContain(signupResponse.status());
 
   const loginResponse = await request.post('http://127.0.0.1:8888/identity/api/auth/login', {
     data: {
@@ -19,9 +33,17 @@ test('blocks access to another user mechanic report', async ({ request }) => {
     },
   });
 
-  expect(loginResponse.status()).toBe(200);
+  const loginBodyText = await loginResponse.text();
 
-  const loginBody = await loginResponse.json();
+  console.log('Login status:', loginResponse.status());
+  console.log('Login body:', loginBodyText);
+
+  expect(
+    loginResponse.status(),
+    `Expected login to succeed, but got ${loginResponse.status()}`
+  ).toBe(200);
+
+  const loginBody = JSON.parse(loginBodyText);
   const token = loginBody.token;
 
   expect(token).toBeTruthy();
