@@ -2,9 +2,9 @@ name: Playwright Security Regression
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   playwright-security:
@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Playwright test dependencies
+      - name: Install Playwright dependencies
         working-directory: playwright-security
         run: npm ci
 
