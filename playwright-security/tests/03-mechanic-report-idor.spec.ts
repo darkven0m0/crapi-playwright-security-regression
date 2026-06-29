@@ -1,10 +1,21 @@
 import { test, expect } from '@playwright/test';
 
+const testUser = {
+  name: 'Playwright IDOR User',
+  email: 'playwright-idor-user@test.com',
+  number: '2238887879',
+  password: 'Test123!',
+};
+
 test('blocks access to another user mechanic report', async ({ request }) => {
+  await request.post('http://127.0.0.1:8888/identity/api/auth/signup', {
+    data: testUser,
+  });
+
   const loginResponse = await request.post('http://127.0.0.1:8888/identity/api/auth/login', {
     data: {
-      email: 'lanipooigig@test.com',
-      password: 'Test123!',
+      email: testUser.email,
+      password: testUser.password,
     },
   });
 
